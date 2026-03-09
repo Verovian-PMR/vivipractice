@@ -38,7 +38,7 @@ vivipractice/
 └── .env.example       → Environment variable template
 ```
 
-## How to Run
+## How to Run (Local Development)
 1. **Prerequisites:** Node.js 20+, npm 11+, Docker
 2. **Setup:**
    ```
@@ -53,6 +53,33 @@ vivipractice/
 4. **Build:** `npm run build`
 5. **Seed Database:** `npm run seed` — populates SiteSettings, BrandSettings, 5 default pages with full component stacks, and form fields
 6. **Swagger Docs:** http://localhost:3001/api/docs (dev only)
+
+## Production Deployment (AWS Lightsail)
+Target: 2 GB RAM / 2 vCPUs / 60 GB SSD | Domain: services.vivipractice.com
+
+1. **Clone & configure:**
+   ```
+   git clone https://github.com/Verovian-PMR/pmr2.git vivipractice
+   cd vivipractice
+   cp .env.example .env   # Fill in POSTGRES_PASSWORD, JWT_SECRET
+   ```
+2. **SSL certificates:** Place `fullchain.pem` and `privkey.pem` in `docker/nginx/certs/`
+3. **Deploy:**
+   ```
+   docker compose -f docker-compose.prod.yml up -d --build
+   ```
+4. **Create admin user:**
+   ```
+   chmod +x scripts/create-admin.sh
+   ./scripts/create-admin.sh
+   ```
+5. **Run migrations:**
+   ```
+   docker compose -f docker-compose.prod.yml exec api npx prisma db push --schema=packages/database/prisma/schema.prisma
+   ```
+
+Nginx routes: `/api/*` → API, `/dashboard*` → dashboard, `/` → public-site.
+Memory limits: Postgres 384MB, API 384MB, Dashboard 384MB, Public-Site 384MB, Nginx 64MB (~1.6GB total).
 
 ## Key Design Decisions
 1. **Single-tenancy per pharmacy** — Each pharmacy gets isolated DB + storage for HIPAA compliance
@@ -122,8 +149,14 @@ Full website customization hub with 3 horizontal sub-tabs. **Fully API-wired** �
 - Types: `website/types.ts` (BrandSettings, HeaderSettings, FooterSettings, GlobalSettings, SitePage, ComponentDef, ComponentInstance, ConfigField, ConfigFieldType)
 - Data: `website/data.ts` (DEFAULT_SETTINGS, DEFAULT_PAGES, COMPONENT_LIBRARY with configFields)
 
+### Profile Page
+User profile page (`/profile`) accessible by clicking the user avatar at the bottom of the sidebar. Features:
+- **Account Details** — Editable name, email, phone with avatar initials display
+- **Change Password** — Current/new/confirm password form with validation (min 8 chars, match confirmation)
+- Demo mode: shows success toasts without API calls
+
 ### Sidebar Navigation
-Premium sidebar with grouped sections (Main: Website, Services, Schedule, Appointments | Management: Inventory, Settings). Form Builder is hidden. Active state with left accent bar, localStorage persistence.
+Premium sidebar with grouped sections (Main: Website, Services, Schedule, Appointments | Management: Inventory, Settings). Form Builder is hidden. Active state with left accent bar, localStorage persistence. User avatar at bottom links to profile page.
 
 ## Public-Site Rendering
 
@@ -153,7 +186,7 @@ The public-site's service-dependent components (HomeSlider, ServicesListCard, Se
 - **FAQAccordion** — Client-side expandable accordion. Reads `config.items` from Page Manager (array of `{q, a}` objects; falls back to demo pharmacy FAQs). Dashboard uses editable `faq-items` field type.
 - **TeamGrid** — Staff cards grid (matches the 3 demo providers from dashboard).
 - **StatsBar** — Horizontal stats strip with key pharmacy numbers.
-- **ServicesPage** — Dedicated services listing with category pill filters and service cards with Details (green) and Book Now links.
+- **ServicesPage** — Dedicated services listing with search bar, category pill filters, and service cards with Details (green) and Book Now links. Search filters by service name and description.
 
 ### Service Detail Pages (`/services/[slug]`)
 Dynamic detail page for each service, mirroring the dashboard's preset service page view from the Page Manager. Includes:
@@ -175,6 +208,23 @@ Green "Details" button (`bg-emerald-600`) appears next to the blue "Book Now" bu
 
 ### Locale & Display Conventions (Public-Site)
 All provider names use Mr/Mrs/Miss (not Dr.), prices display with £ symbol, consistent with dashboard.
+
+## Mobile Responsiveness
+The public-site is fully responsive:
+- **Header** — Hamburger menu on mobile (`<md`) with full-screen dropdown navigation
+- **HomeSlider** — Left-aligned layout constrains to 90% on mobile
+- **Service cards** — Buttons stack vertically on small screens
+- **Gallery** — Falls back to 2 columns on mobile
+- **TeamGrid** — Falls back to 1 column on mobile, 2 on tablet
+- **DynamicTable** — Horizontal scroll on narrow screens
+- **StatsBar** — 2-column grid on mobile, 4 on desktop
+
+## Double-Booking Prevention
+The booking wizard prevents double-booking at both UI and API levels:
+- **UI level:** DateTimeStep fetches booked slots from `GET /appointments/booked-slots?providerId=X&date=YYYY-MM-DD` and filters them out (including provider buffer time, default 15 min)
+- **API level:** `POST /appointments` checks for overlapping PENDING/CONFIRMED appointments before creating
+- **Data sources:** Booked slots merge DB appointments (from public booking) and appointments-data blob (synced from dashboard localStorage)
+- Buffer time is configurable per provider in their schedule (`bufferMinutes` field)
 
 ## How to Extend
 - **New API module:** Create `apps/api/src/modules/<name>/` with module, service, controller files. Register in `app.module.ts`.
