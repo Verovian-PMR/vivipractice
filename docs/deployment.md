@@ -8,13 +8,13 @@ description: Deploy VivIPractice to AWS Lightsail with Docker Compose
 ## Target Infrastructure
 - **Provider:** AWS Lightsail
 - **Instance:** 2 GB RAM, 2 vCPUs, 60 GB SSD
-- **Domain:** services.vivipractice.com
+- **Domains:** `services.vivipractice.com` (public site), `dashboard.vivipractice.com` (dashboard)
 - **Stack:** Docker Compose (PostgreSQL + API + Dashboard + Public Site + Nginx)
 
 ## Prerequisites
 - AWS Lightsail instance with Docker & Docker Compose installed
-- Domain DNS pointed to the instance IP
-- SSL certificates (Let's Encrypt recommended)
+- Two DNS A records (`services` and `dashboard`) pointed to the Lightsail static IP
+- SSL certificate covering both subdomains (wildcard `*.vivipractice.com` or SAN cert)
 
 ## Step-by-Step
 
@@ -34,11 +34,16 @@ Place your SSL certificate files in `docker/nginx/certs/`:
 - `fullchain.pem`
 - `privkey.pem`
 
-For Let's Encrypt:
+The cert must cover both subdomains. For Let's Encrypt:
 ```bash
-sudo certbot certonly --standalone -d services.vivipractice.com
-cp /etc/letsencrypt/live/services.vivipractice.com/fullchain.pem docker/nginx/certs/
-cp /etc/letsencrypt/live/services.vivipractice.com/privkey.pem docker/nginx/certs/
+# Option A: SAN cert for both subdomains
+sudo certbot certonly --nginx -d services.vivipractice.com -d dashboard.vivipractice.com
+# Option B: Wildcard cert (requires DNS challenge)
+sudo certbot certonly --manual --preferred-challenges dns -d "*.vivipractice.com" -d vivipractice.com
+
+# Copy certs
+cp /etc/letsencrypt/live/vivipractice.com/fullchain.pem docker/nginx/certs/
+cp /etc/letsencrypt/live/vivipractice.com/privkey.pem docker/nginx/certs/
 ```
 
 ### 3. Build & Start
@@ -74,10 +79,10 @@ ADMIN_EMAIL=admin@pharmacy.com ADMIN_PASSWORD=SecureP@ss123 ./scripts/create-adm
 
 Total: ~1.6 GB, well within the 2 GB instance limit.
 
-## Nginx Routing
-- `/api/*` → API service
-- `/dashboard*` → Dashboard app
-- Everything else → Public Site
+## Nginx Routing (Subdomain-Based)
+Each subdomain has its own nginx server block. Both proxy `/api/*` to the API.
+- `services.vivipractice.com` → Public Site (port 3003)
+- `dashboard.vivipractice.com` → Dashboard (port 3002)
 
 ## Monitoring & Maintenance
 ```bash

@@ -55,30 +55,43 @@ vivipractice/
 6. **Swagger Docs:** http://localhost:3001/api/docs (dev only)
 
 ## Production Deployment (AWS Lightsail)
-Target: 2 GB RAM / 2 vCPUs / 60 GB SSD | Domain: services.vivipractice.com
+Target: 2 GB RAM / 2 vCPUs / 60 GB SSD
+Domains: `services.vivipractice.com` (public site) | `dashboard.vivipractice.com` (dashboard)
 
-1. **Clone & configure:**
+1. **DNS:** Create 2 A records both pointing to the Lightsail static IP:
+   - `services.vivipractice.com` → Lightsail IP
+   - `dashboard.vivipractice.com` → Lightsail IP
+2. **Clone & configure:**
    ```
    git clone https://github.com/Verovian-PMR/pmr2.git vivipractice
    cd vivipractice
    cp .env.example .env   # Fill in POSTGRES_PASSWORD, JWT_SECRET
    ```
-2. **SSL certificates:** Place `fullchain.pem` and `privkey.pem` in `docker/nginx/certs/`
-3. **Deploy:**
+3. **SSL certificates:** Obtain a cert covering both subdomains and place in `docker/nginx/certs/`:
+   ```
+   # Option A: SAN cert for both subdomains
+   sudo certbot certonly --nginx -d services.vivipractice.com -d dashboard.vivipractice.com
+   # Option B: Wildcard cert (requires DNS challenge)
+   sudo certbot certonly --manual --preferred-challenges dns -d "*.vivipractice.com" -d vivipractice.com
+   ```
+4. **Deploy:**
    ```
    docker compose -f docker-compose.prod.yml up -d --build
    ```
-4. **Create admin user:**
+5. **Create admin user:**
    ```
    chmod +x scripts/create-admin.sh
    ./scripts/create-admin.sh
    ```
-5. **Run migrations:**
+6. **Run migrations:**
    ```
    docker compose -f docker-compose.prod.yml exec api npx prisma db push --schema=packages/database/prisma/schema.prisma
    ```
 
-Nginx routes: `/api/*` → API, `/dashboard*` → dashboard, `/` → public-site.
+**Subdomain routing (nginx):** Each subdomain has its own server block. Both proxy `/api/*` to the API service.
+- `services.vivipractice.com` → Public Site (port 3003)
+- `dashboard.vivipractice.com` → Dashboard (port 3002)
+
 Memory limits: Postgres 384MB, API 384MB, Dashboard 384MB, Public-Site 384MB, Nginx 64MB (~1.6GB total).
 
 ## Key Design Decisions
