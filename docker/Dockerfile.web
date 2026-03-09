@@ -3,7 +3,7 @@
 ARG APP_NAME=dashboard
 
 # Stage 1: Build
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 WORKDIR /app
 
 ARG APP_NAME
@@ -20,7 +20,7 @@ RUN npm run build --workspace=@vivipractice/ui
 RUN npm run build --workspace=@vivipractice/${APP_NAME}
 
 # Stage 2: Production
-FROM node:20-alpine AS runner
+FROM node:20-slim AS runner
 WORKDIR /app
 
 ARG APP_NAME
