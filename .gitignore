@@ -36,6 +36,7 @@ pnpm-debug.log*
 *.tsbuildinfo
 *.txt
 *.md
+!README.md
 
 # Testing
 coverage/
