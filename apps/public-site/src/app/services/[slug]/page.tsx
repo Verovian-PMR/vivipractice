@@ -2,22 +2,35 @@ import { notFound } from "next/navigation";
 import { getServiceBySlug, formatPrice, DEFAULT_SETTINGS } from "@/lib/site-config";
 import { DEFAULT_CATEGORIES } from "@vivipractice/types";
 import { fetchServicesData, getApiBaseUrl } from "@/lib/api";
+import sanitizeHtml from "sanitize-html";
 
-/** Strip dangerous tags/attributes from HTML to prevent XSS (React2Shell, stored XSS). */
-function sanitizeHtml(html: string): string {
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, "")
-    .replace(/<iframe[\s\S]*?<\/iframe>/gi, "")
-    .replace(/<object[\s\S]*?<\/object>/gi, "")
-    .replace(/<embed[\s\S]*?\/?>|<\/embed>/gi, "")
-    .replace(/<link[\s\S]*?\/?>|<\/link>/gi, "")
-    .replace(/<style[\s\S]*?<\/style>/gi, "")
-    .replace(/<form[\s\S]*?<\/form>/gi, "")
-    .replace(/\bon\w+\s*=\s*(["'])[\s\S]*?\1/gi, "")
-    .replace(/\bon\w+\s*=\s*[^\s>]+/gi, "")
-    .replace(/javascript\s*:/gi, "blocked:")
-    .replace(/data\s*:\s*text\/html/gi, "blocked:");
-}
+const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
+  allowedTags: [
+    "p",
+    "br",
+    "strong",
+    "em",
+    "u",
+    "ul",
+    "ol",
+    "li",
+    "a",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "blockquote",
+    "code",
+    "pre",
+    "span",
+  ],
+  allowedAttributes: {
+    a: ["href", "target", "rel"],
+    span: ["class"],
+  },
+  allowedSchemes: ["http", "https", "mailto", "tel"],
+  enforceHtmlBoundary: true,
+};
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -112,7 +125,12 @@ export default async function ServiceDetailPage({ params }: PageProps) {
             <h2 className="text-lg font-semibold text-neutral-900 mb-4">Service Description</h2>
             <div
               className="text-sm text-neutral-700 leading-relaxed break-words overflow-hidden [&>p]:mb-3"
-              dangerouslySetInnerHTML={{ __html: sanitizeHtml(svc.fullDescriptionHtml || "<p>No description available.</p>") }}
+              dangerouslySetInnerHTML={{
+                __html: sanitizeHtml(
+                  svc.fullDescriptionHtml || "<p>No description available.</p>",
+                  SANITIZE_OPTIONS,
+                ),
+              }}
             />
           </div>
 

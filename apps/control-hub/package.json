@@ -12,9 +12,9 @@
   "dependencies": {
     "@vivipractice/types": "*",
     "@vivipractice/ui": "*",
-    "next": "^15.1.6",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "next": "^15.5.14",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1"
   },
   "devDependencies": {
     "@vivipractice/eslint-config": "*",
