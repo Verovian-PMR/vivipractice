@@ -57,6 +57,7 @@ const MANAGEMENT_NAV: NavItem[] = [
 ];
 
 const STORAGE_KEY = "vivi-sidebar-path";
+const BASE_PATH = "/dashboard";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -74,7 +75,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [pathname, mounted]);
 
   function isActive(href: string) {
-    return pathname === href || pathname?.startsWith(href + "/");
+    const normalizedPath = pathname?.startsWith(BASE_PATH)
+      ? pathname.slice(BASE_PATH.length) || "/"
+      : pathname;
+    return normalizedPath === href || normalizedPath?.startsWith(href + "/");
   }
 
   function renderNavItem(item: NavItem) {

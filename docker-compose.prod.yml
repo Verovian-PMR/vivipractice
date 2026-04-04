@@ -1,6 +1,6 @@
 # VivIPractice Production Stack
 # Target: AWS Lightsail 2 GB RAM / 2 vCPUs / 60 GB SSD
-# Domain: services.vivipractice.com
+# Domain: *.vivipractice.com
 
 services:
   # ── PostgreSQL ──────────────────────────────────────────────────
@@ -36,12 +36,13 @@ services:
       NODE_ENV: production
       PORT: 3001
       DATABASE_URL: postgresql://${POSTGRES_USER:-vivi}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-vivipractice}
+      CONTROL_PLANE_DATABASE_URL: postgresql://${POSTGRES_USER:-vivi}:${POSTGRES_PASSWORD}@postgres:5432/${CONTROL_POSTGRES_DB:-vivipractice_control}?schema=public
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-1h}
       JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION:-7d}
       DASHBOARD_URL: https://dashboard.vivipractice.com
       PUBLIC_SITE_URL: https://services.vivipractice.com
-      CONTROL_HUB_URL: https://dashboard.vivipractice.com
+      CONTROL_HUB_URL: https://app.vivipractice.com
     deploy:
       resources:
         limits:
@@ -54,7 +55,7 @@ services:
       dockerfile: docker/Dockerfile.web
       args:
         APP_NAME: dashboard
-        NEXT_PUBLIC_API_URL: https://dashboard.vivipractice.com/api/v1
+        NEXT_PUBLIC_API_URL: /api/v1
     restart: unless-stopped
     environment:
       NODE_ENV: production
@@ -71,11 +72,29 @@ services:
       dockerfile: docker/Dockerfile.web
       args:
         APP_NAME: public-site
-        NEXT_PUBLIC_API_URL: https://services.vivipractice.com/api/v1
+        NEXT_PUBLIC_API_URL: /api/v1
     restart: unless-stopped
     environment:
       NODE_ENV: production
       PORT: 3003
+      API_URL: http://api:3001/api/v1
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+
+  # ── Control Hub (Next.js) ───────────────────────────────────────
+  control-hub:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.web
+      args:
+        APP_NAME: control-hub
+        NEXT_PUBLIC_API_URL: /api/v1
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3004
     deploy:
       resources:
         limits:
@@ -93,6 +112,7 @@ services:
       - ./docker/nginx/certs:/etc/nginx/certs:ro
     depends_on:
       - api
+      - control-hub
       - dashboard
       - public-site
     deploy:

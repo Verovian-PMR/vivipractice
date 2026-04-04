@@ -1,0 +1,58 @@
+// ============================================================
+// VivIPractice - Control Plane Schema (Vendor / Super Admin)
+// Single database shared across the platform for tenant registry.
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/control-client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("CONTROL_PLANE_DATABASE_URL")
+}
+
+// ===== Tenants (Pharmacy Instances) =====
+model Tenant {
+  id             String       @id @default(cuid())
+  name           String                                // "Tar Pharmacy"
+  slug           String       @unique                  // "tarpharmacy" → subdomain
+  status         TenantStatus @default(PROVISIONING)
+  dbName         String       @unique @map("db_name")  // "vivi_tarpharmacy"
+  adminEmail     String       @map("admin_email")
+  adminName      String       @map("admin_name")
+  plan           TenantPlan   @default(FREE_TRIAL)
+  trialExpiresAt DateTime?    @map("trial_expires_at")
+  customDomain   String?      @map("custom_domain")    // future: pharmacy's own domain
+  settings       Json?                                  // tenant-level overrides
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  @@map("tenants")
+}
+
+enum TenantStatus {
+  PROVISIONING
+  ACTIVE
+  SUSPENDED
+  DEACTIVATED
+}
+
+enum TenantPlan {
+  FREE_TRIAL
+  BASIC
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+// ===== Super Admins (Platform Operators) =====
+model SuperAdmin {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  name         String
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("super_admins")
+}

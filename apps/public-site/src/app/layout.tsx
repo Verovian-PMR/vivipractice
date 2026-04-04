@@ -9,6 +9,9 @@ export const metadata: Metadata = {
   description: "Book your appointment online",
 };
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 async function getSettings() {
   try {
     const remote = await fetchBrandSettings();

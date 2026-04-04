@@ -8,9 +8,12 @@
   "scripts": {
     "build": "tsc",
     "generate": "prisma generate",
+    "generate:control": "prisma generate --schema=prisma/control-schema.prisma",
     "push": "prisma db push",
+    "push:control": "prisma db push --schema=prisma/control-schema.prisma",
     "migrate": "prisma migrate dev",
     "studio": "prisma studio",
+    "studio:control": "prisma studio --schema=prisma/control-schema.prisma",
     "seed": "tsx prisma/seed.ts",
     "typecheck": "tsc --noEmit"
   },

@@ -28,13 +28,31 @@ async function bootstrap() {
 
   // CORS - restrict in production
   app.enableCors({
-    origin: process.env.NODE_ENV === "production"
-      ? [
-          process.env.DASHBOARD_URL!,
-          process.env.PUBLIC_SITE_URL!,
-          process.env.CONTROL_HUB_URL!,
-        ]
-      : true,
+    origin:
+      process.env.NODE_ENV === "production"
+        ? (origin, callback) => {
+            if (!origin) {
+              callback(null, true);
+              return;
+            }
+
+            const envAllowed = [
+              process.env.DASHBOARD_URL,
+              process.env.PUBLIC_SITE_URL,
+              process.env.CONTROL_HUB_URL,
+            ].filter(Boolean) as string[];
+
+            if (
+              envAllowed.includes(origin) ||
+              /^https:\/\/([a-z0-9-]+\.)?vivipractice\.com$/i.test(origin)
+            ) {
+              callback(null, true);
+              return;
+            }
+
+            callback(new Error("Not allowed by CORS"));
+          }
+        : true,
     credentials: true,
   });
 

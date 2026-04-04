@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
-import { getServiceBySlug, SERVICES, formatPrice, DEFAULT_SETTINGS } from "@/lib/site-config";
+import { getServiceBySlug, formatPrice, DEFAULT_SETTINGS } from "@/lib/site-config";
 import { DEFAULT_CATEGORIES } from "@vivipractice/types";
-import { fetchServicesData } from "@/lib/api";
+import { fetchServicesData, getApiBaseUrl } from "@/lib/api";
 
 /** Strip dangerous tags/attributes from HTML to prevent XSS (React2Shell, stored XSS). */
 function sanitizeHtml(html: string): string {
@@ -23,13 +23,7 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
-// Pre-generate known service detail pages; dynamic ones use fallback
-export function generateStaticParams() {
-  return SERVICES.map((svc) => ({ slug: svc.slug }));
-}
-
-// Allow dynamic params beyond the static list
-export const dynamicParams = true;
+export const dynamic = "force-dynamic";
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
@@ -44,8 +38,11 @@ async function findService(slug: string) {
   // Try API first (has dashboard-created services)
   // Use no-store to always get fresh data for detail pages
   try {
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
-    const res = await fetch(`${API_URL}/services-data`, { cache: "no-store" });
+    const API_URL = getApiBaseUrl();
+    const res = await fetch(`${API_URL}/services-data`, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(8000),
+    });
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {

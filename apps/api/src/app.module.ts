@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+import { MiddlewareConsumer, Module, NestModule, RequestMethod } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
 import { APP_GUARD } from "@nestjs/core";
@@ -12,6 +12,10 @@ import { ComponentsModule } from "./modules/components/components.module";
 import { AuditModule } from "./modules/audit/audit.module";
 import { HealthModule } from "./modules/health/health.module";
 import { DatabaseModule } from "./config/database.module";
+import { ControlPlaneModule } from "./config/control-plane.module";
+import { SuperAuthModule } from "./modules/super-auth/super-auth.module";
+import { TenantsModule } from "./modules/tenants/tenants.module";
+import { TenantMiddleware } from "./common/middleware/tenant.middleware";
 
 @Module({
   imports: [
@@ -31,9 +35,12 @@ import { DatabaseModule } from "./config/database.module";
 
     // Database
     DatabaseModule,
+    ControlPlaneModule,
 
     // Feature modules
     AuthModule,
+    SuperAuthModule,
+    TenantsModule,
     UsersModule,
     ServicesModule,
     SchedulesModule,
@@ -43,6 +50,7 @@ import { DatabaseModule } from "./config/database.module";
     HealthModule,
   ],
   providers: [
+    TenantMiddleware,
     // Apply rate limiting globally
     {
       provide: APP_GUARD,
@@ -50,4 +58,10 @@ import { DatabaseModule } from "./config/database.module";
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(TenantMiddleware)
+      .forRoutes({ path: "*", method: RequestMethod.ALL });
+  }
+}

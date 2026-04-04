@@ -12,6 +12,7 @@ ARG NEXT_PUBLIC_API_URL
 COPY package.json package-lock.json ./
 COPY packages/ ./packages/
 COPY apps/${APP_NAME}/ ./apps/${APP_NAME}/
+RUN mkdir -p ./apps/${APP_NAME}/public
 
 RUN npm ci
 
