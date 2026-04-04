@@ -4,7 +4,7 @@ import { DEFAULT_CATEGORIES } from "@vivipractice/types";
 import { fetchServicesData, getApiBaseUrl } from "@/lib/api";
 import sanitizeHtml from "sanitize-html";
 
-const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
+const SANITIZE_OPTIONS = {
   allowedTags: [
     "p",
     "br",

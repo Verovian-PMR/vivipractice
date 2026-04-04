@@ -63,7 +63,7 @@ function SaveButton({ onClick, saving }: { onClick: () => void; saving?: boolean
 }
 
 /** Strip dangerous tags/attributes from HTML to prevent XSS (React2Shell, stored XSS). */
-const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
+const SANITIZE_OPTIONS = {
   allowedTags: [
     "p",
     "br",

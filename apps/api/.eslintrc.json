@@ -1,0 +1,3 @@
+{
+  "extends": ["@vivipractice/eslint-config/nestjs"]
+}
