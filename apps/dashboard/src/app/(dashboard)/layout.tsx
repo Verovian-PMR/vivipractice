@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 // ── SVG Icon helper ──────────────────────────────────────────
@@ -61,6 +61,7 @@ const BASE_PATH = "/dashboard";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
 
   // Persist active path
@@ -73,6 +74,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       try { localStorage.setItem(STORAGE_KEY, pathname); } catch {}
     }
   }, [pathname, mounted]);
+
+  useEffect(() => {
+    if (!mounted) return;
+    try {
+      const accessToken = localStorage.getItem("vivi_access_token");
+      if (!accessToken) {
+        router.replace(`${BASE_PATH}/login`);
+      }
+    } catch {
+      router.replace(`${BASE_PATH}/login`);
+    }
+  }, [mounted, router]);
+
+  function handleLogout() {
+    try {
+      localStorage.removeItem("vivi_access_token");
+      localStorage.removeItem("vivi_refresh_token");
+      sessionStorage.removeItem("vivi_access_token");
+      sessionStorage.removeItem("vivi_refresh_token");
+    } catch {}
+    window.location.assign(`${BASE_PATH}/login`);
+  }
 
   function isActive(href: string) {
     const normalizedPath = pathname?.startsWith(BASE_PATH)
@@ -163,6 +186,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
             </svg>
           </Link>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="mt-2 w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-[13px] font-medium border border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-7.5a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 006 21h7.5a2.25 2.25 0 002.25-2.25V15m-3 0l3-3m0 0l-3-3m3 3H9" />
+            </svg>
+            Logout
+          </button>
         </div>
       </aside>
 

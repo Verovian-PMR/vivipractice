@@ -48,10 +48,17 @@ export default function LoginPage() {
 
       router.push("/services");
     } catch (submitError) {
+      const message =
+        submitError instanceof Error ? submitError.message : "Unable to sign in";
+      if (message.toLowerCase().includes("tenant not found")) {
+        const host = typeof window !== "undefined" ? window.location.host : "";
+        setError(
+          `Tenant not found for ${host}. Use the exact tenant subdomain created in Control Hub.`,
+        );
+        return;
+      }
       setError(
-        submitError instanceof Error
-          ? submitError.message
-          : "Unable to sign in",
+        message,
       );
     } finally {
       setIsSubmitting(false);
